@@ -9,7 +9,7 @@ async function generateNews() {
     process.exit(1);
   }
 
-  const endpoint = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" + GEMINI_API_KEY;
+  const endpoint = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=" + GEMINI_API_KEY;
 
   const promptText = "Generate 5 latest concise news updates covering Tech, AI, and Web Development. Output strictly a JSON array of objects without Markdown formatting or backticks: [{\"id\": 1, \"title\": \"Title\", \"summary\": \"Summary\", \"category\": \"Tech\", \"date\": \"2026-11-04\"}]";
 

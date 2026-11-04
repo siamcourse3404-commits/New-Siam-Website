@@ -1,63 +1,70 @@
 const fs = require('fs');
+const path = require('path');
 
-const API_KEY = process.env.GEMINI_API_KEY;
-if (!API_KEY) {
-  console.error("GEMINI_API_KEY is missing!");
-  process.exit(1);
-}
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
 async function generateNews() {
-  const prompt = `Write 1 fresh, highly informative short article about today's trending development in AI or Cryptocurrency. 
-Return ONLY a valid JSON object (no markdown formatting, no backticks, no wrap). 
-JSON format:
-{
-  "category": "AI or Crypto",
-  "headline": "Punchy headline here",
-  "summary": "1-2 sentences summary",
-  "content": "Paragraph 1\\n\\nParagraph 2\\n\\nParagraph 3 (around 15-25 lines total)",
-  "sources": [{"name": "Source Name", "url": "https://example.com"}]
-}`;
-
-  const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      contents: [{ parts: [{ text: prompt }] }],
-      generationConfig: { responseMimeType: "application/json" }
-    })
-  });
-
-  const data = await res.json();
-  const rawText = data.candidates[0].content.parts[0].text;
-  const article = JSON.parse(rawText);
-
-  const now = new Date();
-  const expires = new Date(now.getTime() + 10 * 24 * 60 * 60 * 1000);
-
-  article.date = now.toISOString().split('T')[0];
-  article.expires = expires.toISOString();
-
-  let currentNews = [];
-  if (fs.existsSync('news.json')) {
-    try {
-      currentNews = JSON.parse(fs.readFileSync('news.json', 'utf8'));
-    } catch (e) {
-      currentNews = [];
-    }
+  if (!GEMINI_API_KEY) {
+    console.error("Error: GEMINI_API_KEY is not defined in environment variables.");
+    process.exit(1);
   }
 
-  const activeNews = currentNews.filter(item => {
-    return !item.expires || new Date(item.expires) > now;
-  });
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
 
-  activeNews.unshift(article);
-  const finalList = activeNews.slice(0, 10);
+  const prompt = \`Generate 5 latest concise news updates covering Tech, AI, and Web Development. 
+Output strictly valid JSON array of objects without Markdown formatting or backticks:
+[
+  {
+    "id": 1,
+    "title": "Title here",
+    "summary": "Short summary",
+    "category": "Tech",
+    "date": "\${new Date().toISOString().split('T')[0]}"
+  }
+]\`;
 
-  fs.writeFileSync('news.json', JSON.stringify(finalList, null, 2));
-  console.log("Successfully generated and updated daily news!");
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: {
+          response_mime_type: "application/json"
+        }
+      })
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      throw new Error(\`API responded with status \${response.status}: \${errText}\`);
+    }
+
+    const data = await response.json();
+
+    if (!data.candidates || !data.candidates[0] || !data.candidates[0].content || !data.candidates[0].content.parts || !data.candidates[0].content.parts[0]) {
+      console.error("Unexpected API response structure:", JSON.stringify(data, null, 2));
+      throw new Error("Invalid response format received from Gemini API");
+    }
+
+    const rawText = data.candidates[0].content.parts[0].text.trim();
+    let newsData;
+
+    try {
+      newsData = JSON.parse(rawText);
+    } catch (parseErr) {
+      console.error("Raw response text was not valid JSON:", rawText);
+      throw parseErr;
+    }
+
+    const outputPath = path.join(process.cwd(), 'news.json');
+    fs.writeFileSync(outputPath, JSON.stringify(newsData, null, 2), 'utf-8');
+    console.log(\`Successfully generated and wrote news to \${outputPath}\`);
+
+  } catch (error) {
+    console.error("Execution failed in generateNews:", error.message);
+    process.exit(1);
+  }
 }
 
-generateNews().catch(err => {
-  console.error(err);
-  process.exit(1);
-});
+generateNews();

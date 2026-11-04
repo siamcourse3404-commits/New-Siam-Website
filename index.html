@@ -47,6 +47,43 @@
         .social-links a:hover {
             color: #fff;
         }
+        /* News Section */
+        #news-section {
+            max-width: 800px;
+            margin: 0 auto 4rem auto;
+        }
+        #news-section h2 {
+            font-size: 1.5rem;
+            margin-bottom: 1.5rem;
+            text-align: center;
+            color: #ccc;
+        }
+        .news-grid {
+            display: grid;
+            gap: 1.5rem;
+        }
+        .news-card {
+            background: #16161a;
+            padding: 1.5rem;
+            border-radius: 12px;
+            border: 1px solid #27272a;
+        }
+        .news-card h3 {
+            font-size: 1.2rem;
+            margin-bottom: 0.5rem;
+            color: #fff;
+        }
+        .news-card p {
+            color: #a1a1aa;
+            font-size: 0.95rem;
+        }
+        .news-card .date {
+            display: block;
+            margin-top: 1rem;
+            font-size: 0.8rem;
+            color: #71717a;
+        }
+        /* Gallery */
         .gallery {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -73,8 +110,7 @@
             transform: scale(1.05);
             filter: grayscale(0%);
         }
-
-        /* Lightbox (full picture view) */
+        /* Lightbox */
         .lightbox {
             position: fixed;
             inset: 0;
@@ -95,23 +131,12 @@
             object-fit: contain;
             border-radius: 8px;
         }
-        .lightbox-close {
-            position: absolute;
-            top: 1rem;
-            right: 1.25rem;
-            color: #fff;
-            font-size: 2rem;
-            line-height: 1;
-            background: none;
-            border: none;
-            cursor: pointer;
-        }
     </style>
 </head>
 <body>
 
     <header>
-        <h1>Life in Frames</h1>
+        <h1>My Daily Moments</h1>
         <div class="social-links">
             <a href="#" target="_blank">Instagram</a>
             <a href="#" target="_blank">Twitter</a>
@@ -119,49 +144,66 @@
         </div>
     </header>
 
+    <section id="news-section">
+        <h2>Daily Updates</h2>
+        <div class="news-grid" id="news-container">
+            Loading news...
+        </div>
+    </section>
+
     <main class="gallery">
-        <!-- Add your image links here -->
         <div class="moment-card">
-            <img src="https://plain-apac-prod-public.komododecks.com/202611/04/MQW1QeEO6XfMQftm7Is5/image.jpg" alt="Moment 1">
+            <img src="https://picsum.photos/seed/1/600/400" alt="Moment 1">
         </div>
         <div class="moment-card">
-            <img src="https://plain-apac-prod-public.komododecks.com/202611/04/0U8Gx8gvs7Mtb4vpuT1Z/image.jpg" alt="Moment 2">
+            <img src="https://picsum.photos/seed/2/600/400" alt="Moment 2">
         </div>
         <div class="moment-card">
-            <img src="https://plain-apac-prod-public.komododecks.com/202611/04/k0T7P4lsNqOknnKqt9sh/image.jpg" alt="Moment 3">
-        </div>
-        <div class="moment-card">
-            <img src="https://picsum.photos/seed/4/600/400" alt="Moment 4">
+            <img src="https://picsum.photos/seed/3/600/400" alt="Moment 3">
         </div>
     </main>
 
     <div class="lightbox" id="lightbox">
-        <button class="lightbox-close" id="lightbox-close" aria-label="Close">&times;</button>
         <img id="lightbox-img" src="" alt="">
     </div>
 
     <script>
+        // Lightbox functionality
         const lightbox = document.getElementById('lightbox');
         const lightboxImg = document.getElementById('lightbox-img');
 
-        document.querySelectorAll('.moment-card img').forEach(function (img) {
-            img.addEventListener('click', function () {
+        document.querySelectorAll('.moment-card img').forEach(img => {
+            img.addEventListener('click', () => {
                 lightboxImg.src = img.src;
-                lightboxImg.alt = img.alt;
                 lightbox.classList.add('open');
             });
         });
 
-        function closeLightbox() {
+        lightbox.addEventListener('click', () => {
             lightbox.classList.remove('open');
-            lightboxImg.src = '';
+        });
+
+        // Fetch and render news
+        async function loadNews() {
+            const container = document.getElementById('news-container');
+            try {
+                const response = await fetch('news.json');
+                if (!response.ok) throw new Error('Failed to load news');
+                const news = await response.json();
+                
+                container.innerHTML = news.map(item => `
+                    <div class="news-card">
+                        <h3>${item.title}</h3>
+                        <p>${item.summary}</p>
+                        <span class="date">${item.date || ''}</span>
+                    </div>
+                `).join('');
+            } catch (error) {
+                container.innerHTML = '<p>Unable to load latest updates.</p>';
+            }
         }
 
-        lightbox.addEventListener('click', closeLightbox);
-        document.addEventListener('keydown', function (e) {
-            if (e.key === 'Escape') closeLightbox();
-        });
+        loadNews();
     </script>
-
 </body>
 </html>
